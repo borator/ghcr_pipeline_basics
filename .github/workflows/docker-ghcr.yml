@@ -5,6 +5,10 @@ on:
     branches: [ "master" ]
   pull_request:
 
+permissions:
+  contents: read
+  packages: write # Grant write access for packages
+
 jobs:
   build:
     runs-on: ubuntu-latest
