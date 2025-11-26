@@ -1,18 +1,13 @@
-name: CI Docker Build
+name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout code
@@ -26,8 +21,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker image
-        run: docker build -t ghcr.io/${{ github.repository }}/myapp:latest -f app/Dockerfile ./app
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/ghcr_pipeline_basics:latest \
+            -f app/Dockerfile \
+            ./app
 
       - name: Push Docker image
-        run: docker push ghcr.io/${{ github.repository }}/myapp:latest
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/ghcr_pipeline_basics:latest
 
