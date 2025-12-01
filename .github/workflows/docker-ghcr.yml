@@ -34,14 +34,14 @@ jobs:
       - name: Build Docker image worker
         run: |
           docker build \
-            -t ghcr.io/${{ github.repository_owner }}/ghcr_pipeline_basics:latest \
+            -t ghcr.io/${{ github.repository_owner }}/worker:latest \
             -f app/Dockerfile.worker \
             ./app
 
       - name: Build Docker image loader
         run: |
           docker build \
-            -t ghcr.io/${{ github.repository_owner }}/ghcr_pipeline_basics:latest \
+            -t ghcr.io/${{ github.repository_owner }}/exporter:latest \
             -f app/Dockerfile.loader \
             ./app
 
