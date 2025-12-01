@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  packages: write # Grant write access for packages
+  packages: write
 
 jobs:
   build:
@@ -31,14 +31,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image
+      - name: Build Docker image worker
         run: |
           docker build \
             -t ghcr.io/${{ github.repository_owner }}/ghcr_pipeline_basics:latest \
-            -f app/Dockerfile \
+            -f app/Dockerfile.worker \
             ./app
+
+      - name: Build Docker image loader
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/ghcr_pipeline_basics:latest \
+            -f app/Dockerfile.loader \
+            ./app
+            
+      - name: Tag images for GHCR
+        run: |
+          docker tag worker:latest ghcr.io/${{ github.repository }}/worker:latest
+          docker tag loader:latest ghcr.io/${{ github.repository }}/exporter:latest
 
       - name: Push Docker image
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/ghcr_pipeline_basics:latest
-
+          docker push ghcr.io/${{ github.repository_owner }}/worker:latest
+          docker push ghcr.io/${{ github.repository_owner }}/exporter:latest

@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Words list</title>
+  </head>
+  <body>
+    <h1>Words</h1>
+    <form action="/add" method="post">
+      <input name="word" placeholder="type a word" required />
+      <button type="submit">Add</button>
+    </form>
+
+    <ul id="words">
+      {% for w in words %}
+        <li>{{ w }}</li>
+      {% else %}
+        <li><em>No words yet</em></li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
+

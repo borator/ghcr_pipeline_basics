@@ -1,11 +1,135 @@
-version: '4'
 services:
-  app:
+  web:
     build:
       context: ./app
+      dockerfile: Dockerfile.web
+    image: flask-words:local
     ports:
-      - '5000:5000'
-    volumes:
-      - ./app:/app
+      - "5000:5000"
     environment:
-      - FLASK_ENV=development
+      PYTHONUNBUFFERED: 1
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - backend
+      - frontend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"      # Max 50% of one CPU core
+          memory: 256M     # Max 256 MB RAM
+        reservations:
+          cpus: "0.25"     # Reserve 25% of a core
+          memory: 128M     # Guaranteed memory
+    restart: on-failure    # Restart if the app crashes
+
+  redis:
+    image: redis:7
+      #build:
+      #context: ./app
+      #dockerfile: Dockerfile.redis
+      #image: redis-cust:local
+    volumes:
+      - redis-data:/data
+    networks:
+      - frontend
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.45.0
+    environment:
+      - REDIS_ADDR=redis:6379
+    ports:
+      - "9121:9121"    # optional host access
+    networks:
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  worker:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.worker
+    image: words-worker:local
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - redis
+    networks:
+      - frontend
+      - backend
+    command: python -u worker.py
+
+  loader:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.loader
+    image: words-loader:local
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - worker
+    networks:
+      - frontend
+      - backend
+    command: python -u loadgen.py
+
+  exporter:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.export
+    image: words-exporter:local
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    networks:
+      - backend
+    command: python queue_exporter.py
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - frontend
+      - backend
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    networks:
+      - frontend
+
+volumes:
+  redis-data:
+
+networks:
+  frontend:
+  backend:
+
