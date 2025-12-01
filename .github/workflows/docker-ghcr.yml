@@ -47,16 +47,20 @@ jobs:
 
       - name: Debug — show repo files
         run: |
-          echo "=== Workspace tree ==="
+          echo "=== build finished ==="
           ls -R . || true
-
-      - name: Push Docker image
-        run: |
-          docker push ghcr.io/${{ github.repository_owner }}/worker:latest
-          docker push ghcr.io/${{ github.repository_owner }}/exporter:latest
 
       - name: Tag images for GHCR
         run: |
           docker tag worker:latest ghcr.io/${{ github.repository }}/worker:latest
           docker tag loader:latest ghcr.io/${{ github.repository }}/exporter:latest
 
+      - name: Debug — show repo files
+        run: |
+          echo "=== tag finished ==="
+          ls -R . || true
+
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/worker:latest
+          docker push ghcr.io/${{ github.repository_owner }}/exporter:latest
