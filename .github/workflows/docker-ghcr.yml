@@ -49,13 +49,14 @@ jobs:
         run: |
           echo "=== Workspace tree ==="
           ls -R . || true
-            
-      - name: Tag images for GHCR
-        run: |
-          docker tag worker:latest ghcr.io/${{ github.repository }}/worker:latest
-          docker tag loader:latest ghcr.io/${{ github.repository }}/exporter:latest
 
       - name: Push Docker image
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/worker:latest
           docker push ghcr.io/${{ github.repository_owner }}/exporter:latest
+
+      - name: Tag images for GHCR
+        run: |
+          docker tag worker:latest ghcr.io/${{ github.repository }}/worker:latest
+          docker tag loader:latest ghcr.io/${{ github.repository }}/exporter:latest
+
