@@ -33,7 +33,7 @@ jobs:
 
       - name: Build Docker image worker
         run: |
-          docker build ...\
+          docker build \
             -t ghcr.io/${{ github.repository_owner }}/worker:latest \
             -f app/Dockerfile.worker \
             ./app
@@ -43,15 +43,6 @@ jobs:
           echo "=== build finished ==="
           ls -R . || true
           echo $github.repository_owner
-
-      - name: Tag images for GHCR
-        run: |
-          docker tag worker:latest ghcr.io/${{ github.repository_owner }}/worker:latest
-
-      - name: Debug — show repo files
-        run: |
-          echo "=== tag finished ==="
-          ls -R . || true
 
       - name: Push Docker image
         run: |
