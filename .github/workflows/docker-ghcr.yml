@@ -33,7 +33,8 @@ jobs:
 
       - name: Build Docker image worker
         run: |
-          docker build \
+          docker build ...\
+            -t ghcr.io/${{ github.repository_owner }}/worker:latest \
             -f app/Dockerfile.worker \
             ./app
 
