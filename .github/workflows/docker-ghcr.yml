@@ -34,7 +34,6 @@ jobs:
       - name: Build Docker image worker
         run: |
           docker build \
-            -t ghcr.io/${{ github.repository_owner }}/worker:latest \
             -f app/Dockerfile.worker \
             ./app
 
@@ -42,6 +41,7 @@ jobs:
         run: |
           echo "=== build finished ==="
           ls -R . || true
+          echo $github.repository_owner
 
       - name: Tag images for GHCR
         run: |
