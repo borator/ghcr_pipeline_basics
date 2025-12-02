@@ -38,12 +38,21 @@ jobs:
             -f app/Dockerfile.worker \
             ./app
 
+      - name: Build Docker image loader
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/loader:latest \
+            -f app/Dockerfile.loader \
+            ./app
+
       - name: Debug — show repo files
         run: |
-          echo "=== build finished ==="
+          echo "=== build worker and loader finished ==="
           ls -R . || true
           echo $github.repository_owner
+
 
       - name: Push Docker image
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/worker:latest
+          docker push ghcr.io/${{ github.repository_owner }}/loader:latest
