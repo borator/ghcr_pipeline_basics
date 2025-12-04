@@ -61,8 +61,8 @@ services:
 
   worker:
     build:
-      context: ./app
-      dockerfile: Dockerfile.worker
+      context: ./worker
+      dockerfile: Dockerfile
     image: words-worker:local
     environment:
       REDIS_HOST: redis
@@ -76,8 +76,8 @@ services:
 
   loader:
     build:
-      context: ./app
-      dockerfile: Dockerfile.loader
+      context: ./loader
+      dockerfile: Dockerfile
     image: words-loader:local
     environment:
       REDIS_HOST: redis

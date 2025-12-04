@@ -1,13 +1,14 @@
 FROM python:3.12-slim
 
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
+# requirements exist inside loader/
 COPY requirements.txt .
-RUN pip install "redis>=4.5"
-RUN apt-get update && apt-get install -y iputils-ping
+
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Use CMD, so it can be overridden in docker-compose.yml
-CMD ["python", "loadgen.py"]
+CMD ["python", "loader.py"]
 
