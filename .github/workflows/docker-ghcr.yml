@@ -72,8 +72,16 @@ jobs:
 
       - name: HTTP Smoke Test
         run: |
-          echo "Running curl test..."
-          curl -v http://localhost:5000 || exit 1
+          for i in {1..10}; do
+            if curl -fs http://localhost:8080/health; then
+              echo "Service is up"
+              exit 0
+            fi
+            echo "Waiting for service..."
+            sleep 2
+          done
+          echo "Service did not start in time"
+          exit 1
 
       # -----------------------------------------------------
       # Cleanup
