@@ -1,8 +1,8 @@
-name: Build, Test & Push Multi-Image Pipeline
+name: Build & Test & Push to GHCR
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: [ "master" ]
   pull_request:
 
 permissions:
@@ -13,104 +13,82 @@ jobs:
   build-test-push:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        service: [loader, worker]
+
     steps:
-      # ------------------------------
-      # 1. Checkout repository
-      # ------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ------------------------------
-      # 2. Login to GHCR
-      # ------------------------------
-      - name: Log in to GitHub Container Registry
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ------------------------------
-      # 3. Build loader image (no push)
-      # ------------------------------
-      - name: Build loader image
+      # ---------------------
+      # BUILD (load locally)
+      # ---------------------
+      - name: Build image (with load)
         uses: docker/build-push-action@v5
         with:
-          context: ./loader
-          file: ./loader/Dockerfile
-          push: false
-          load: true                  # Needed so GHA can run container locally for tests
-          tags: |
-            ghcr.io/${{ github.repository }}/loader:latest
-
-      # ------------------------------
-      # 4. Test loader image (curl)
-      # ------------------------------
-      - name: Smoke-test loader
-        run: |
-          docker run -d --name test_loader -p 5000:5000 ghcr.io/${{ github.repository }}/loader:latest
-          echo "Waiting for loader..."
-          sleep 5
-
-          echo "Testing endpoint..."
-          curl -f http://localhost:5000 || (echo "Loader failed!" && docker logs test_loader && exit 1)
-
-          docker stop test_loader
-          docker rm test_loader
-
-      # ------------------------------
-      # 5. Build worker image (no push)
-      # ------------------------------
-      - name: Build worker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./worker
-          file: ./worker/Dockerfile
-          push: false
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:latest
           load: true
-          tags: |
-            ghcr.io/${{ github.repository }}/worker:latest
 
-      # ------------------------------
-      # 6. Test worker image (curl)
-      # ------------------------------
-      - name: Smoke-test worker
+      # -----------------------------------
+      # DEBUGGING (ensure image is present)
+      # -----------------------------------
+      - name: Show local Docker images
+        run: docker images
+
+      - name: Inspect built image ID
+        run: docker inspect ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:latest | jq '.[0].Id'
+
+      # ---------------------
+      # SMOKE TEST
+      # ---------------------
+      - name: Run smoke test container
         run: |
-          docker run -d --name test_worker -p 5001:5001 ghcr.io/${{ github.repository }}/worker:latest
-          echo "Waiting for worker..."
+          echo "Starting container..."
+          docker run --rm -d --name test_${{ matrix.service }} \
+            -p 5000:5000 \
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:latest
+
           sleep 5
+          echo "--- Container logs ---"
+          docker logs test_${{ matrix.service }}
 
-          echo "Testing endpoint..."
-          curl -f http://localhost:5001 || (echo "Worker failed!" && docker logs test_worker && exit 1)
+      - name: HTTP test
+        run: |
+          echo "Running curl test..."
+          curl -v http://localhost:5000 || exit 1
 
-          docker stop test_worker
-          docker rm test_worker
+      - name: Stop test container
+        if: always()
+        run: docker stop test_${{ matrix.service }}
 
-      # ------------------------------
-      # 7. Push loader image
-      # ------------------------------
-      - name: Push loader image
+      # ---------------------
+      # PUSH ONLY IF TEST PASSED
+      # ---------------------
+      - name: Push image to GHCR
+        if: success()
         uses: docker/build-push-action@v5
-        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          context: ./loader
-          file: ./loader/Dockerfile
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/loader:latest
-            ghcr.io/${{ github.repository }}/loader:${{ github.sha }}
-
-      # ------------------------------
-      # 8. Push worker image
-      # ------------------------------
-      - name: Push worker image
-        uses: docker/build-push-action@v5
-        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
-        with:
-          context: ./worker
-          file: ./worker/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/worker:latest
-            ghcr.io/${{ github.repository }}/worker:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:${{ github.sha }}
 
