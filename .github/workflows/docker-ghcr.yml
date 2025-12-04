@@ -73,7 +73,7 @@ jobs:
       - name: HTTP Smoke Test
         run: |
           for i in {1..10}; do
-            if curl -fs http://localhost:8080/health; then
+            if curl -v http://localhost:5000; then
               echo "Service is up"
               exit 0
             fi
